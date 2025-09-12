@@ -29,7 +29,7 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
-    coberImage: {
+    coverImage: { // ✅ Fixed spelling
       type: String 
     },
     watchHistory:[
@@ -40,9 +40,9 @@ const userSchema = new Schema(
     ],
     password: {
       type: String,
-      required: [true, "Passeord is required"]
+      required: [true, "Password is required"] // ✅ Fixed spelling
     },
-    refereshToken: {
+    refreshToken: { // ✅ Fixed spelling
       type: String
     },
   },
@@ -51,21 +51,19 @@ const userSchema = new Schema(
   }
 )
 
+// ✅ Fixed: Added async, corrected logic
+userSchema.pre("save", async function (next) {
+  if(!this.isModified("password")) return next(); // Exit if password is NOT modified
 
-userSchema.pre("save", function (next) {
-  if(this.isModified("password")) return next();
-
-
-  this.password = bcrypt.hash(this.password, 10)
+  this.password = await bcrypt.hash(this.password, 10)
   next()
 })
 
-userSchema.methods.isPasswordCorrect = async function
-(password) {
+userSchema.methods.isPasswordCorrect = async function(password) {
   return await bcrypt.compare(password, this.password)
 }
 
-userSchema.methods.generateAccessToken= function(){\
+userSchema.methods.generateAccessToken = function(){
   return jwt.sign(
     {
       _id: this._id,
@@ -79,13 +77,11 @@ userSchema.methods.generateAccessToken= function(){\
     }
   )
 }
+
 userSchema.methods.generateRefreshToken = function(){
   return jwt.sign(
     {
       _id: this._id,
-      email: this.email,
-      username: this.username,
-      fullname: this.fullname
     },
     process.env.REFRESH_TOKEN_SECRET,
     {
@@ -93,4 +89,5 @@ userSchema.methods.generateRefreshToken = function(){
     }
   )
 }
+
 export const User = mongoose.model("User", userSchema)

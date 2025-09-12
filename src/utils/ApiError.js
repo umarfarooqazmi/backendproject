@@ -22,4 +22,4 @@
 
   }
  }
- export {ApiError }
+ export { ApiError }
