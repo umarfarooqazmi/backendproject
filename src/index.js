@@ -1,13 +1,11 @@
 import dotenv from "dotenv";
 import connectDB from "./db/index.js";
-import express from "express";
+import { app } from "./app.js"; // ✅ Import the configured app
 
 // Load environment variables
 dotenv.config({
   path: "./.env",
 });
-
-const app = express();
 
 // Connect to MongoDB and start server
 connectDB()
