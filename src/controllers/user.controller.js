@@ -7,31 +7,41 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 const registerUser = asyncHandler(async (req, res) => { 
     const { fullname, username, email, password } = req.body;
 
-    console.log("email:", email);
-
-  
-    if (
-        [fullname, email, username, password].some(field => field?.trim() === "")
-    ) {
+    // Validate required fields
+    if (!fullname || !username || !email || !password) {
         throw new ApiError(400, "All fields are required");
     }
 
-   
+    // Check for empty strings
+    if (
+        [fullname, email, username, password].some(field => field?.trim() === "")
+    ) {
+        throw new ApiError(400, "All fields are required and cannot be empty");
+    }
+
+    // Check if user already exists
     const existedUser = await User.findOne({
-        $or: [{email}, {username}]
+        $or: [{email}, {username: username.toLowerCase()}]
     });
 
     if (existedUser){
         throw new ApiError(409, "User with that email or username already exists");
     }
 
+    // Handle file uploads
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+    let coverImageLocalPath;
+    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length>0){
+        coverImageLocalPath = req.files.coverImage[0].path
+    }
 
     if(!avatarLocalPath){
         throw new ApiError(400, "Avatar file is required");
     }
 
+    // Upload files to cloudinary
     const avatar = await uploadOnCloudinary(avatarLocalPath);
     const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
@@ -39,7 +49,7 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Avatar file is required");
     }
 
-    
+    // Create user in database
     const user = await User.create({
         fullname,
         username: username.toLowerCase(),
@@ -49,18 +59,16 @@ const registerUser = asyncHandler(async (req, res) => {
         coverImage: coverImage?.url || ""
     });
 
-    const createdUser = await User.findById(user._id).select("-password -refreshToken")
+    // Retrieve created user without sensitive fields
+    const createdUser = await User.findById(user._id).select("-password -refreshToken");
 
     if(!createdUser){
-      throw new ApiError(500, "Something went wrong while registering the user" )
+        throw new ApiError(500, "Something went wrong while registering the user");
     }
 
     return res.status(201).json(
-      new ApiResponse(200, createdUser, "User registered successfully")
-    )
-
-  
-
+        new ApiResponse(200, createdUser, "User registered successfully")
+    );
 });
 
 export { registerUser };
